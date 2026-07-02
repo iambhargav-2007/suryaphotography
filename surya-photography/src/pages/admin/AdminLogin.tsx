@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AlertCircle } from 'lucide-react';
 import './Admin.css';
 
+import { API_BASE_URL } from '../../config/api';
+
 const AdminLogin: React.FC = () => {
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
@@ -21,7 +23,7 @@ const AdminLogin: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const res = await fetch('http://localhost:5000/api/admin/login', {
+      const res = await fetch(`${API_BASE_URL}/admin/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
