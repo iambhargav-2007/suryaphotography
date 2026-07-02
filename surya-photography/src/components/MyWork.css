@@ -137,6 +137,15 @@
 
 /* Mobile First Adjustments */
 @media (max-width: 768px) {
+  .my-work-section {
+    padding-top: 4rem;
+    padding-bottom: 2rem;
+  }
+
+  .my-work-header {
+    margin-bottom: 2.5rem;
+  }
+
   .horizontal-scroll-container {
     height: 350vh; /* slightly shorter scroll duration on mobile */
   }

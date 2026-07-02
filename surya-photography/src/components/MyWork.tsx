@@ -21,8 +21,8 @@ import indiv3img4 from '../assets/indiv3img4.jpeg';
 const collections = [
   { 
     id: 'c1', 
-    title: 'Golden Hour Dreams', 
-    caption: 'Capturing confidence, elegance and personality through natural light.',
+    title: 'Daylight Radiance', 
+    caption: 'Capturing clarity, elegance, and natural emotions in bright daylight.',
     images: [
       { src: indiv1img1 }, 
       { src: indiv1img2 }, 

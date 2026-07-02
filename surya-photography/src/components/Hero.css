@@ -175,7 +175,7 @@
   .hero-section {
     align-items: center;
     padding-bottom: 0;
-    height: 100vh;
+    height: 80vh;
   }
   .hero-image-wrapper {
     width: 100vw;
@@ -196,7 +196,7 @@
   }
   .hero-content {
     padding: 0 5%;
-    margin-top: 15vh;
+    margin-top: 32vh;
     z-index: 2;
     align-items: center;
     text-align: center;
