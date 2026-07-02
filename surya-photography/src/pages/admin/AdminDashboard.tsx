@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Clock, Users, XCircle, LayoutDashboard, Settings, LogOut, CheckCircle2, MessageCircle, Phone, Trash2, X, Plus } from 'lucide-react';
+import { Calendar, Clock, Users, XCircle, LayoutDashboard, Settings, LogOut, CheckCircle2, MessageCircle, Phone, Trash2, X, Plus, ArrowLeft } from 'lucide-react';
 import './Admin.css';
 
 import { API_BASE_URL } from '../../config/api';
@@ -85,7 +85,11 @@ const AdminDashboard: React.FC = () => {
       </nav>
 
       <div className="admin-container">
-        
+        <Link to="/" className="back-link">
+          <ArrowLeft size={20} />
+          <span>Back to Portfolio</span>
+        </Link>
+
         {/* 1. Greeting Section */}
         <motion.header 
           className="admin-header"

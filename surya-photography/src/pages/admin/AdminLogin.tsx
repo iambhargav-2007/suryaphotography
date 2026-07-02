@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, ArrowLeft } from 'lucide-react';
 import './Admin.css';
 
 import { API_BASE_URL } from '../../config/api';
@@ -46,6 +46,11 @@ const AdminLogin: React.FC = () => {
 
   return (
     <div className="admin-login-page">
+      <Link to="/" className="back-link">
+        <ArrowLeft size={20} />
+        <span>Back to Portfolio</span>
+      </Link>
+
       <motion.div 
         className="login-card"
         initial={{ opacity: 0, y: 20 }}

@@ -18,6 +18,34 @@
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
+  position: relative;
+}
+
+/* Back Link styling */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--admin-text-secondary);
+  text-decoration: none;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  transition: color 0.3s ease;
+}
+
+.back-link:hover {
+  color: var(--admin-accent);
+}
+
+.admin-login-page .back-link {
+  position: absolute;
+  top: 2rem;
+  left: 2rem;
+}
+
+.admin-container .back-link {
+  margin-bottom: 1.5rem;
+  margin-top: 0.5rem;
 }
 
 .login-card {
