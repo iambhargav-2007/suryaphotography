@@ -4,24 +4,53 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, Clock, Users, XCircle, LayoutDashboard, Settings, LogOut, CheckCircle2, MessageCircle, Phone, Trash2, X, Plus } from 'lucide-react';
 import './Admin.css';
 
-// Mock Data
-const todaySchedule = [
-  { id: '1', time: '6 PM', name: 'Bhargav', phone: '+919876543210', status: 'booked' },
-  { id: '2', time: '7 PM', name: 'Harsha', phone: '+919876543211', status: 'booked' },
-  { id: '3', time: '8 PM', name: 'Available', phone: '', status: 'available' },
-  { id: '4', time: '9 PM', name: 'Blocked', phone: '', status: 'blocked' },
-];
+import { API_BASE_URL } from '../../config/api';
 
-const upcomingSessions = [
-  { id: '1', date: 'Tomorrow', time: '7 PM', name: 'Rahul', phone: '+919876543212' },
-  { id: '2', date: 'Tomorrow', time: '8 PM', name: 'Keerthana', phone: '+919876543213' },
-  { id: '3', date: '13 Jun', time: '6 PM', name: 'Ajay', phone: '+919876543214' },
-];
+interface DashboardData {
+  todaySessions: number;
+  availableSlots: number;
+  upcomingSessions: number;
+  todayRevenue: number;
+  todaySchedule: any[];
+  upcomingBookings: any[];
+}
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<any | null>(null);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        const token = localStorage.getItem('adminToken');
+        if (!token) {
+          navigate('/admin/login');
+          return;
+        }
+        
+        const res = await fetch(`${API_BASE_URL}/admin/dashboard`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        if (!res.ok) {
+          if (res.status === 401) navigate('/admin/login');
+          throw new Error('Failed to fetch dashboard');
+        }
+        
+        const data = await res.json();
+        setDashboardData(data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchDashboard();
+  }, [navigate]);
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -66,7 +95,7 @@ const AdminDashboard: React.FC = () => {
           <div className="header-flex">
             <div>
               <h1 className="greeting-text">Good Evening, Surya 👋</h1>
-              <p className="greeting-subtext">3 portrait sessions scheduled today.</p>
+              <p className="greeting-subtext">{dashboardData?.todaySessions || 0} portrait session{(dashboardData?.todaySessions || 0) === 1 ? '' : 's'} scheduled today.</p>
             </div>
             <button 
               className="logout-btn desktop-only" 
@@ -88,19 +117,19 @@ const AdminDashboard: React.FC = () => {
           transition={{ delay: 0.1 }}
         >
           <div className="stat-card">
-            <span className="stat-value">3</span>
+            <span className="stat-value">{dashboardData?.todaySessions || 0}</span>
             <span className="stat-label">Today's<br/>Sessions</span>
           </div>
           <div className="stat-card">
-            <span className="stat-value">1</span>
+            <span className="stat-value">{dashboardData?.availableSlots || 0}</span>
             <span className="stat-label">Available<br/>Slots</span>
           </div>
           <div className="stat-card">
-            <span className="stat-value">0</span>
-            <span className="stat-label">Blocked<br/>Slots</span>
+            <span className="stat-value">₹{dashboardData?.todayRevenue || 0}</span>
+            <span className="stat-label">Today's<br/>Revenue</span>
           </div>
           <div className="stat-card">
-            <span className="stat-value">12</span>
+            <span className="stat-value">{dashboardData?.upcomingSessions || 0}</span>
             <span className="stat-label">Upcoming<br/>Sessions</span>
           </div>
         </motion.section>
@@ -116,7 +145,7 @@ const AdminDashboard: React.FC = () => {
           <div className="schedule-card">
             <div className="schedule-header-badge">TODAY</div>
             <div className="schedule-list">
-              {todaySchedule.map((slot) => (
+              {loading ? <p style={{padding: '1rem'}}>Loading schedule...</p> : dashboardData?.todaySchedule?.map((slot) => (
                 <div 
                   key={slot.id} 
                   className="schedule-item" 
@@ -176,7 +205,7 @@ const AdminDashboard: React.FC = () => {
         >
           <h2 className="section-title">Upcoming Sessions</h2>
           <div className="upcoming-list">
-            {upcomingSessions.map((session, index) => (
+            {loading ? <p style={{padding: '1rem'}}>Loading upcoming...</p> : dashboardData?.upcomingBookings?.map((session, index) => (
               <React.Fragment key={session.id}>
                 <div className="upcoming-item">
                   <div className="upcoming-date">{session.date}</div>
@@ -202,9 +231,10 @@ const AdminDashboard: React.FC = () => {
                     )}
                   </div>
                 </div>
-                {index < upcomingSessions.length - 1 && <div className="upcoming-separator" />}
+                {index < dashboardData.upcomingBookings.length - 1 && <div className="upcoming-separator" />}
               </React.Fragment>
             ))}
+            {dashboardData?.upcomingBookings?.length === 0 && <p style={{padding: '1rem', color: 'var(--admin-text-secondary)'}}>No upcoming sessions.</p>}
           </div>
         </motion.section>
 

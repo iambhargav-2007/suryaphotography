@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { Calendar as CalendarIcon, Users, Settings, LayoutDashboard, X, ChevronRight, ChevronDown, MessageCircle, Phone, Trash2, PlusCircle, Ban, Unlock, CheckCircle2, Plus } from 'lucide-react';
+import { Calendar as CalendarIcon, Users, Settings, LayoutDashboard, X, ChevronRight, ChevronDown, MessageCircle, Phone, Trash2, PlusCircle, Ban, Unlock, CheckCircle2, Plus, ArrowLeft } from 'lucide-react';
+import { API_BASE_URL } from '../../config/api';
 import './Admin.css';
 
-// --- Types & Mock Data ---
+// --- Types ---
 type SlotStatus = 'available' | 'booked' | 'blocked';
 type DateState = 'available' | 'partial' | 'full' | 'blocked';
 
@@ -12,6 +13,7 @@ interface Slot {
   id: string;
   time: string;
   status: SlotStatus;
+  bookingId?: string;
   name?: string;
   phone?: string;
   location?: string;
@@ -24,86 +26,199 @@ interface CalendarDate {
   dayStr: string;
   state: DateState;
   stateLabel: string;
-  slots: Slot[];
 }
-
-const generateMockCalendar = (): CalendarDate[] => {
-  const dates: CalendarDate[] = [];
-  const today = new Date();
-  
-  for (let i = 0; i < 14; i++) {
-    const d = new Date(today);
-    d.setDate(today.getDate() + i);
-    
-    // Randomize states for mock UI
-    let state: DateState = 'available';
-    let stateLabel = 'Available';
-    let slots: Slot[] = [
-      { id: `s1-${i}`, time: '6 PM - 7 PM', status: 'available' },
-      { id: `s2-${i}`, time: '7 PM - 8 PM', status: 'available' },
-      { id: `s3-${i}`, time: '8 PM - 9 PM', status: 'available' },
-      { id: `s4-${i}`, time: '9 PM - 10 PM', status: 'available' }
-    ];
-
-    if (i === 0) { // Today
-      state = 'partial';
-      stateLabel = '2/4 Booked';
-      slots[0] = { id: `s1-${i}`, time: '6 PM - 7 PM', status: 'booked', name: 'Bhargav', phone: '+919876543210', location: 'Library', notes: 'Need sunset portraits' };
-      slots[1] = { id: `s2-${i}`, time: '7 PM - 8 PM', status: 'booked', name: 'Harsha', phone: '+919876543211', location: 'Main Block' };
-      slots[3] = { id: `s4-${i}`, time: '9 PM - 10 PM', status: 'blocked' };
-    } else if (i === 2 || i === 7) {
-      state = 'full';
-      stateLabel = 'FULL';
-      slots.forEach(s => { s.status = 'booked'; s.name = 'Client'; });
-    } else if (i === 4) {
-      state = 'blocked';
-      stateLabel = 'BLOCKED';
-      slots.forEach(s => s.status = 'blocked');
-    } else if (i % 3 === 0) {
-      state = 'partial';
-      stateLabel = '1/4 Booked';
-      slots[2] = { id: `s3-${i}`, time: '8 PM - 9 PM', status: 'booked', name: 'Rahul', phone: '+919876543212', location: 'Garden' };
-    }
-
-    // Calculate booking counts
-    const totalSlots = slots.length;
-    const bookedCount = slots.filter(s => s.status === 'booked').length;
-    
-    if (state !== 'blocked' && state !== 'full') {
-      stateLabel = `${bookedCount}/${totalSlots} Booked`;
-    }
-
-    dates.push({
-      id: `date-${i}`,
-      dateStr: d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }),
-      dayStr: i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : d.toLocaleDateString('en-US', { weekday: 'short' }),
-      state,
-      stateLabel,
-      slots
-    });
-  }
-  return dates;
-};
-
-const mockData = generateMockCalendar();
 
 const AdminCalendar: React.FC = () => {
   const navigate = useNavigate();
-  const [expandedDateId, setExpandedDateId] = useState<string | null>(mockData[0].id);
+  const [datesList, setDatesList] = useState<CalendarDate[]>([]);
+  const [slotsByDate, setSlotsByDate] = useState<Record<string, Slot[]>>({});
+  
+  const [expandedDateId, setExpandedDateId] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [slotsLoading, setSlotsLoading] = useState<Record<string, boolean>>({});
 
   const showToast = (message: string) => {
     setToastMessage(message);
     setTimeout(() => setToastMessage(null), 3000);
   };
 
+  const fetchCalendar = async () => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      if (!token) return navigate('/admin/login');
+      
+      const res = await fetch(`${API_BASE_URL}/admin/calendar`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to fetch calendar');
+      const data = await res.json();
+      
+      const todayStr = new Date().toISOString().split('T')[0];
+      
+      const formattedDates = data.map((item: any) => {
+        const d = new Date(item.date);
+        
+        let dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+        if (item.date === todayStr) dayName = 'Today';
+        
+        let state: DateState = 'available';
+        let stateLabel = 'Available';
+        const totalSlots = 4;
+        
+        if (item.blocked === 4) {
+          state = 'blocked';
+          stateLabel = 'BLOCKED';
+        } else if (item.booked >= totalSlots) {
+          state = 'full';
+          stateLabel = 'FULL';
+        } else if (item.booked > 0) {
+          state = 'partial';
+          stateLabel = `${item.booked}/${totalSlots} Booked`;
+        }
+        
+        return {
+          id: item.date,
+          dateStr: d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }),
+          dayStr: dayName,
+          state,
+          stateLabel
+        };
+      });
+      
+      setDatesList(formattedDates);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCalendar();
+  }, [navigate]);
+
+  const fetchSlotsForDate = async (dateId: string) => {
+    setSlotsLoading(prev => ({ ...prev, [dateId]: true }));
+    try {
+      const token = localStorage.getItem('adminToken');
+      const res = await fetch(`${API_BASE_URL}/admin/calendar/${dateId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to fetch slots');
+      const data = await res.json();
+      
+      const mappedSlots = data.slots.map((s: any) => {
+        let timeLabel = s.slot;
+        if (s.slot === '6PM') timeLabel = '6 PM - 7 PM';
+        if (s.slot === '7PM') timeLabel = '7 PM - 8 PM';
+        if (s.slot === '8PM') timeLabel = '8 PM - 9 PM';
+        if (s.slot === '9PM') timeLabel = '9 PM - 10 PM';
+        
+        return {
+          id: s.slot,
+          time: timeLabel,
+          status: s.status.toLowerCase(),
+          bookingId: s.bookingId,
+          name: s.name,
+          phone: s.phone,
+          notes: s.reason
+        };
+      });
+      
+      setSlotsByDate(prev => ({ ...prev, [dateId]: mappedSlots }));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSlotsLoading(prev => ({ ...prev, [dateId]: false }));
+    }
+  };
+
   const toggleDate = (id: string) => {
-    setExpandedDateId(expandedDateId === id ? null : id);
+    if (expandedDateId === id) {
+      setExpandedDateId(null);
+    } else {
+      setExpandedDateId(id);
+      if (!slotsByDate[id]) {
+        fetchSlotsForDate(id);
+      }
+    }
   };
 
   const closeBottomSheet = () => {
     setSelectedSlot(null);
+    setSelectedDate(null);
+  };
+
+  const handleBlockSlot = async () => {
+    if (!selectedSlot || !selectedDate) return;
+    try {
+      const token = localStorage.getItem('adminToken');
+      const res = await fetch(`${API_BASE_URL}/admin/block-slot`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ date: selectedDate, slot: selectedSlot.id, reason: 'Manual Block' })
+      });
+      if (res.ok) {
+        showToast('Slot Blocked Successfully');
+        fetchSlotsForDate(selectedDate);
+        fetchCalendar();
+        closeBottomSheet();
+      } else {
+        const err = await res.json();
+        showToast(`Error: ${err.message}`);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleUnblockSlot = async () => {
+    if (!selectedSlot || !selectedDate) return;
+    try {
+      const token = localStorage.getItem('adminToken');
+      const res = await fetch(`${API_BASE_URL}/admin/unblock-slot`, {
+        method: 'DELETE',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ date: selectedDate, slot: selectedSlot.id })
+      });
+      if (res.ok) {
+        showToast('Slot Unblocked');
+        fetchSlotsForDate(selectedDate);
+        fetchCalendar();
+        closeBottomSheet();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleCancelBooking = async () => {
+    if (!selectedSlot || !selectedDate || !selectedSlot.bookingId) return;
+    try {
+      const token = localStorage.getItem('adminToken');
+      const res = await fetch(`${API_BASE_URL}/admin/bookings/${selectedSlot.bookingId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        showToast('Booking Cancelled');
+        fetchSlotsForDate(selectedDate);
+        fetchCalendar();
+        closeBottomSheet();
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const getStateColor = (state: DateState) => {
@@ -132,18 +247,29 @@ const AdminCalendar: React.FC = () => {
 
       <div className="admin-container" style={{ paddingBottom: '120px' }}>
         
-        <header className="admin-header calendar-header">
+        <header className="admin-header calendar-header" style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
+          <button 
+            onClick={() => navigate('/admin')}
+            style={{ position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--admin-text-secondary)', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', padding: '0.5rem', fontFamily: 'var(--font-body)' }}
+            className="back-btn"
+          >
+            <ArrowLeft size={20} />
+            <span className="desktop-only">Back</span>
+          </button>
           <div className="month-nav">
             <button className="month-btn">&lt;</button>
-            <h1 className="greeting-text" style={{ fontSize: '1.4rem', margin: 0 }}>June 2026</h1>
+            <h1 className="greeting-text" style={{ fontSize: '1.4rem', margin: 0 }}>Calendar</h1>
             <button className="month-btn">&gt;</button>
           </div>
         </header>
 
         {/* Date Cards List */}
         <div className="calendar-list">
-          {mockData.map((date) => {
+          {loading ? <p>Loading calendar...</p> : datesList.map((date) => {
             const isExpanded = expandedDateId === date.id;
+            const slots = slotsByDate[date.id] || [];
+            const isLoadingSlots = slotsLoading[date.id];
+
             return (
               <div key={date.id} className={`calendar-card-wrapper ${isExpanded ? 'expanded' : ''}`}>
                 <div 
@@ -171,11 +297,16 @@ const AdminCalendar: React.FC = () => {
                       style={{ overflow: 'hidden' }}
                     >
                       <div className="slots-accordion-inner">
-                        {date.slots.map((slot) => (
+                        {isLoadingSlots ? (
+                          <p style={{padding: '0.5rem 1rem'}}>Loading slots...</p>
+                        ) : slots.map((slot) => (
                           <div 
                             key={slot.id} 
                             className={`accordion-slot ${slot.status}`}
-                            onClick={() => setSelectedSlot(slot)}
+                            onClick={() => {
+                              setSelectedSlot(slot);
+                              setSelectedDate(date.id);
+                            }}
                           >
                             <div className="slot-time-block">
                               <span className="time">{slot.time.split(' - ')[0]}</span>
@@ -239,7 +370,7 @@ const AdminCalendar: React.FC = () => {
               <div className="sheet-header">
                 <div className="sheet-title-group">
                   <p style={{ fontSize: '0.85rem', color: 'var(--admin-text-secondary)', marginBottom: '4px', fontFamily: 'var(--font-body)' }}>
-                    {mockData.find(d => d.slots.some(s => s.id === selectedSlot.id))?.dateStr}
+                    {datesList.find(d => d.id === selectedDate)?.dateStr}
                   </p>
                   <h3>{selectedSlot.time}</h3>
                   <span className={`sheet-badge badge-${selectedSlot.status}`}>
@@ -256,14 +387,7 @@ const AdminCalendar: React.FC = () => {
                   <div className="booked-details">
                     <div className="detail-row"><span className="label">Name</span><span className="value">{selectedSlot.name}</span></div>
                     <div className="detail-row"><span className="label">Phone</span><a href={`tel:${selectedSlot.phone}`} className="value phone-link">{selectedSlot.phone}</a></div>
-                    <div className="detail-row"><span className="label">Location</span><span className="value">{selectedSlot.location || 'N/A'}</span></div>
-                    {selectedSlot.notes && (
-                      <div className="detail-row vertical">
-                        <span className="label">Notes</span>
-                        <div className="notes-box">{selectedSlot.notes}</div>
-                      </div>
-                    )}
-
+                    
                     <div className="sheet-actions mt-4">
                       <a href={`https://wa.me/${selectedSlot.phone?.replace('+', '')}`} target="_blank" rel="noreferrer" className="sheet-btn btn-whatsapp">
                         <MessageCircle size={18} /> WhatsApp Customer
@@ -271,10 +395,7 @@ const AdminCalendar: React.FC = () => {
                       <a href={`tel:${selectedSlot.phone}`} className="sheet-btn btn-call">
                         <Phone size={18} /> Call Customer
                       </a>
-                      <button className="sheet-btn btn-cancel-booking" onClick={() => {
-                        showToast('Booking Cancelled');
-                        closeBottomSheet();
-                      }}>
+                      <button className="sheet-btn btn-cancel-booking" onClick={handleCancelBooking}>
                         <Trash2 size={18} /> Cancel Booking
                       </button>
                     </div>
@@ -285,17 +406,8 @@ const AdminCalendar: React.FC = () => {
                   <div className="available-actions">
                     <p className="helper-text">This slot is open for booking.</p>
                     <div className="sheet-actions">
-                      <button className="sheet-btn btn-block" onClick={() => {
-                        showToast('Slot Blocked Successfully');
-                        closeBottomSheet();
-                      }}>
+                      <button className="sheet-btn btn-block" onClick={handleBlockSlot}>
                         <Ban size={18} /> Block Slot
-                      </button>
-                      <button className="sheet-btn btn-manual" onClick={() => {
-                        showToast('Manual Booking Created');
-                        closeBottomSheet();
-                      }}>
-                        <PlusCircle size={18} /> Add Manual Booking
                       </button>
                     </div>
                   </div>
@@ -305,10 +417,7 @@ const AdminCalendar: React.FC = () => {
                   <div className="blocked-actions">
                     <p className="helper-text">This slot is manually blocked and not visible to users.</p>
                     <div className="sheet-actions">
-                      <button className="sheet-btn btn-unblock" onClick={() => {
-                        showToast('Slot Unblocked');
-                        closeBottomSheet();
-                      }}>
+                      <button className="sheet-btn btn-unblock" onClick={handleUnblockSlot}>
                         <Unlock size={18} /> Unblock Slot
                       </button>
                     </div>

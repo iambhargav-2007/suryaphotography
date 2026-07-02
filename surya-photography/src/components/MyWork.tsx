@@ -118,7 +118,7 @@ const HorizontalStory = ({ story }: { story: typeof collections[0] }) => {
 
 const MyWork: React.FC = () => {
   return (
-    <section className="my-work-section" id="my-work">
+    <section className="my-work-section" id="work">
       
       <div className="my-work-header">
         <motion.div 

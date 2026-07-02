@@ -4,36 +4,27 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, Clock, MapPin, CalendarOff, X, CheckCircle } from 'lucide-react';
 import './Booking.css';
 
-// --- Mock Data Generators ---
-const generateDates = () => {
-  const dates = [];
-  const today = new Date();
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(today);
-    d.setDate(today.getDate() + i);
-    dates.push({
-      id: d.toISOString().split('T')[0],
-      dayName: i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : d.toLocaleDateString('en-US', { weekday: 'short' }),
-      dateNumber: d.getDate(),
-      monthName: d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase(),
-      dateLabel: `${d.getDate()} ${d.toLocaleDateString('en-US', { month: 'short' })}`,
-      isFull: i === 2 || i === 5,
-      fullDateObj: d
-    });
-  }
-  return dates;
-};
+import { API_BASE_URL } from '../config/api';
 
-const mockSlots = [
-  { id: 's1', time: '6 PM - 7 PM', title: 'Portrait Session', status: 'available' },
-  { id: 's2', time: '7 PM - 8 PM', title: 'Portrait Session', status: 'booked' },
-  { id: 's3', time: '8 PM - 9 PM', title: 'Portrait Session', status: 'available' },
-  { id: 's4', time: '9 PM - 10 PM', title: 'Portrait Session', status: 'blocked' },
-];
+// --- Types ---
+interface DateItem {
+  id: string;
+  dayName: string;
+  dateNumber: number;
+  monthName: string;
+  dateLabel: string;
+  isFull: boolean;
+  fullDateObj: Date;
+}
+
+interface SlotItem {
+  id: string;
+  time: string;
+  title: string;
+  status: 'available' | 'booked' | 'blocked';
+}
 
 const locations = ['Food Court', 'Sklm Campus', 'Main gate', 'Beside Library', 'Open To Suggestions'];
-
-const datesList = generateDates();
 
 const Booking: React.FC = () => {
   const navigate = useNavigate();
@@ -58,10 +49,97 @@ const Booking: React.FC = () => {
     notes: ''
   });
 
+  const [datesList, setDatesList] = useState<DateItem[]>([]);
+  const [slotsList, setSlotsList] = useState<SlotItem[]>([]);
+  const [loadingDates, setLoadingDates] = useState(true);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [bookingError, setBookingError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Fetch upcoming availability
+  useEffect(() => {
+    const fetchDates = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/bookings/availability`);
+        if (!res.ok) throw new Error('Failed to fetch dates');
+        const data = await res.json();
+        
+        const formattedDates = data.map((item: any) => {
+          const d = new Date(item.date);
+          const today = new Date();
+          const todayStr = today.toISOString().split('T')[0];
+          
+          let dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+          if (item.date === todayStr) dayName = 'Today';
+          else {
+            const tomorrow = new Date(today);
+            tomorrow.setDate(today.getDate() + 1);
+            if (item.date === tomorrow.toISOString().split('T')[0]) dayName = 'Tomorrow';
+          }
+
+          return {
+            id: item.date,
+            dayName,
+            dateNumber: d.getDate(),
+            monthName: d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase(),
+            dateLabel: `${d.getDate()} ${d.toLocaleDateString('en-US', { month: 'short' })}`,
+            isFull: item.booked >= 4,
+            fullDateObj: d
+          };
+        });
+        
+        setDatesList(formattedDates);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoadingDates(false);
+      }
+    };
+    fetchDates();
+  }, []);
+
+  // Fetch slots when a date is selected
+  useEffect(() => {
+    if (!selectedDateId) {
+      setSlotsList([]);
+      return;
+    }
+    const fetchSlots = async () => {
+      setLoadingSlots(true);
+      try {
+        const res = await fetch(`${API_BASE_URL}/bookings/availability/${selectedDateId}`);
+        if (!res.ok) throw new Error('Failed to fetch slots');
+        const data = await res.json();
+        
+        const formattedSlots = data.map((item: any) => {
+          let timeLabel = item.slot;
+          if (item.slot === '6PM') timeLabel = '6 PM - 7 PM';
+          if (item.slot === '7PM') timeLabel = '7 PM - 8 PM';
+          if (item.slot === '8PM') timeLabel = '8 PM - 9 PM';
+          if (item.slot === '9PM') timeLabel = '9 PM - 10 PM';
+          
+          return {
+            id: item.slot,
+            time: timeLabel,
+            title: 'Portrait Session',
+            status: item.status.toLowerCase() as 'available' | 'booked' | 'blocked'
+          };
+        });
+        
+        setSlotsList(formattedSlots);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoadingSlots(false);
+      }
+    };
+    fetchSlots();
+  }, [selectedDateId]);
+
   const selectedDate = datesList.find(d => d.id === selectedDateId);
-  const selectedSlot = mockSlots.find(s => s.id === selectedSlotId);
-  const availableSlotsCount = mockSlots.filter(s => s.status === 'available').length;
-  const totalSlotsCount = mockSlots.length;
+  const selectedSlot = slotsList.find(s => s.id === selectedSlotId);
+  const availableSlotsCount = slotsList.filter(s => s.status === 'available').length;
+  const totalSlotsCount = slotsList.length;
 
   // Handlers
   const handleContinueBooking = () => {
@@ -76,12 +154,42 @@ const Booking: React.FC = () => {
     document.body.style.overflow = 'auto';
   };
 
-  const handleReserveSession = (e: React.FormEvent) => {
+  const handleReserveSession = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Generate Mock ID
-    const randomNum = Math.floor(1000 + Math.random() * 9000);
-    setBookingId(`SP-${randomNum}`);
-    setIsSuccess(true);
+    setBookingError('');
+    setIsSubmitting(true);
+    
+    try {
+      const payload = {
+        name: formData.fullName,
+        phone: formData.mobile,
+        year: formData.year,
+        branch: formData.branch,
+        preferredLocation: formData.location,
+        notes: formData.notes,
+        date: selectedDateId,
+        slot: selectedSlotId
+      };
+      
+      const res = await fetch(`${API_BASE_URL}/bookings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to create booking');
+      }
+      
+      setBookingId(data.bookingId);
+      setIsSuccess(true);
+    } catch (err: any) {
+      setBookingError(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleBackToHome = () => {
@@ -186,31 +294,35 @@ const Booking: React.FC = () => {
               <p className="section-subheading">For {selectedDate?.dateLabel}, {selectedDate?.fullDateObj.getFullYear()}</p>
               
               <div className="slots-grid">
-                {mockSlots.map((slot) => {
-                  const isSelected = slot.id === selectedSlotId;
-                  return (
-                    <motion.button
-                      key={slot.id}
-                      className={`slot-card ${slot.status} ${isSelected ? 'selected' : ''}`}
-                      onClick={() => {
-                        if (slot.status === 'available') {
-                          setSelectedSlotId(slot.id);
-                        }
-                      }}
-                      whileTap={slot.status === 'available' ? { scale: 0.95 } : {}}
-                      animate={isSelected ? { scale: 1.02 } : { scale: 1 }}
-                      transition={{ type: "spring", stiffness: 300 }}
-                    >
-                      <div className="slot-details">
-                        <span className="slot-time">{slot.time}</span>
-                        <span className="slot-title">{slot.title}</span>
-                      </div>
-                      <span className="slot-status">
-                        {slot.status === 'available' ? 'Available' : slot.status === 'booked' ? 'Booked' : 'Blocked'}
-                      </span>
-                    </motion.button>
-                  );
-                })}
+                {loadingSlots ? (
+                  <p>Loading slots...</p>
+                ) : (
+                  slotsList.map((slot) => {
+                    const isSelected = slot.id === selectedSlotId;
+                    return (
+                      <motion.button
+                        key={slot.id}
+                        className={`slot-card ${slot.status} ${isSelected ? 'selected' : ''}`}
+                        onClick={() => {
+                          if (slot.status === 'available') {
+                            setSelectedSlotId(slot.id);
+                          }
+                        }}
+                        whileTap={slot.status === 'available' ? { scale: 0.95 } : {}}
+                        animate={isSelected ? { scale: 1.02 } : { scale: 1 }}
+                        transition={{ type: "spring", stiffness: 300 }}
+                      >
+                        <div className="slot-details">
+                          <span className="slot-time">{slot.time}</span>
+                          <span className="slot-title">{slot.title}</span>
+                        </div>
+                        <span className="slot-status">
+                          {slot.status === 'available' ? 'Available' : slot.status === 'booked' ? 'Booked' : 'Blocked'}
+                        </span>
+                      </motion.button>
+                    );
+                  })
+                )}
               </div>
             </motion.section>
           )}
@@ -403,8 +515,11 @@ const Booking: React.FC = () => {
                         />
                       </div>
 
+                      {bookingError && <p className="error-text" style={{color: 'red', fontSize: '0.875rem', marginBottom: '1rem'}}>{bookingError}</p>}
                       <div className="modal-footer">
-                        <button type="submit" className="btn-reserve">Reserve Session</button>
+                        <button type="submit" className="btn-reserve" disabled={isSubmitting}>
+                          {isSubmitting ? 'Reserving...' : 'Reserve Session'}
+                        </button>
                       </div>
                     </form>
                   </div>
