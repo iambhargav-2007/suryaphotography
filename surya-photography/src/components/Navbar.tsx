@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
@@ -9,9 +9,14 @@ import logo from '../assets/logo.png';
 const Navbar: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const lastLogoClickRef = useRef(0);
 
-  const handleLogoDoubleClick = () => {
-    navigate('/admin/login');
+  const handleLogoClick = () => {
+    const now = Date.now();
+    if (now - lastLogoClickRef.current < 300) {
+      navigate('/admin/login');
+    }
+    lastLogoClickRef.current = now;
   };
 
   return (
@@ -23,7 +28,7 @@ const Navbar: React.FC = () => {
     >
       <div 
         className="navbar-left"
-        onDoubleClick={handleLogoDoubleClick}
+        onClick={handleLogoClick}
         style={{ cursor: 'default', userSelect: 'none' }}
       >
         <img src={logo} alt="Surya Photography" className="navbar-logo" />

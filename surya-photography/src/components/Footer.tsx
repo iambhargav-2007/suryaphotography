@@ -1,10 +1,19 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import './Footer.css';
 
 const Footer: React.FC = () => {
   const navigate = useNavigate();
+  const lastClickRef = useRef(0);
+
+  const handleFooterClick = () => {
+    const now = Date.now();
+    if (now - lastClickRef.current < 300) {
+      navigate('/admin/login');
+    }
+    lastClickRef.current = now;
+  };
 
   return (
     <section className="footer-section" id="contact">
@@ -78,7 +87,7 @@ const Footer: React.FC = () => {
 
       <div className="footer-bottom">
         <span 
-          onDoubleClick={() => navigate('/admin/login')} 
+          onClick={handleFooterClick} 
           style={{ cursor: 'default', userSelect: 'none' }}
         >
           © 2026 Surya Photography
