@@ -1,9 +1,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import './Footer.css';
 
 const Footer: React.FC = () => {
+  const navigate = useNavigate();
+
   return (
     <section className="footer-section" id="contact">
       
@@ -75,7 +77,12 @@ const Footer: React.FC = () => {
       </div>
 
       <div className="footer-bottom">
-        <span>© 2026 Surya Photography</span>
+        <span 
+          onDoubleClick={() => navigate('/admin/login')} 
+          style={{ cursor: 'default', userSelect: 'none' }}
+        >
+          © 2026 Surya Photography
+        </span>
       </div>
     </section>
   );

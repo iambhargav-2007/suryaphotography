@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import './Navbar.css';
 
@@ -8,6 +8,11 @@ import logo from '../assets/logo.png';
 
 const Navbar: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
+
+  const handleLogoDoubleClick = () => {
+    navigate('/admin/login');
+  };
 
   return (
     <motion.nav 
@@ -16,7 +21,11 @@ const Navbar: React.FC = () => {
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
     >
-      <div className="navbar-left">
+      <div 
+        className="navbar-left"
+        onDoubleClick={handleLogoDoubleClick}
+        style={{ cursor: 'default', userSelect: 'none' }}
+      >
         <img src={logo} alt="Surya Photography" className="navbar-logo" />
         <span className="navbar-brand">Surya <span className="brand-text-full">Photography</span></span>
       </div>

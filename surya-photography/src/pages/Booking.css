@@ -722,12 +722,17 @@ select {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   padding: 2rem 5%;
   text-align: center;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: rgba(255,255,255,0.2) transparent;
+}
+
+.success-screen::before,
+.success-screen::after {
+  content: '';
+  margin: auto;
 }
 
 .success-screen::-webkit-scrollbar {
