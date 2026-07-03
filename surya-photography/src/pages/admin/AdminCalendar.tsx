@@ -6,7 +6,7 @@ import { API_BASE_URL } from '../../config/api';
 import './Admin.css';
 
 // --- Types ---
-type SlotStatus = 'available' | 'booked' | 'blocked';
+type SlotStatus = 'available' | 'booked' | 'blocked' | 'pending';
 type DateState = 'available' | 'partial' | 'full' | 'blocked';
 
 interface Slot {
