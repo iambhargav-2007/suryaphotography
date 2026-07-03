@@ -33,7 +33,18 @@ export const fetchDashboardData = async () => {
     const block = todayBlocked.find(b => b.slot === slot);
 
     if (booking) {
-      return { id: booking.bookingId, time: slot, name: booking.name, phone: booking.phone, status: 'booked' };
+      return { 
+        id: booking.bookingId, 
+        time: slot, 
+        name: booking.name, 
+        email: booking.email,
+        phone: booking.phone,
+        year: booking.year,
+        branch: booking.branch,
+        location: booking.preferredLocation,
+        notes: booking.notes,
+        status: booking.status === 'pending' ? 'pending' : 'booked' 
+      };
     } else if (block) {
       return { id: `blocked-${slot}`, time: slot, name: 'Blocked', phone: '', status: 'blocked' };
     } else {
@@ -52,7 +63,12 @@ export const fetchDashboardData = async () => {
       date: b.date,
       time: b.slot,
       name: b.name,
-      phone: b.phone
+      email: b.email,
+      phone: b.phone,
+      year: b.year,
+      branch: b.branch,
+      location: b.preferredLocation,
+      notes: b.notes
     }))
   };
 };

@@ -2,6 +2,7 @@ import { fetchDashboardData } from '../services/dashboardService.js';
 import { fetchMonthlyCalendar, fetchDateSlots } from '../services/calendarService.js';
 import Booking from '../models/Booking.js';
 import BlockedSlot from '../models/BlockedSlot.js';
+import { sendEmail } from '../services/emailService.js';
 
 // @desc    Get dashboard summary
 // @route   GET /api/admin/dashboard
@@ -86,7 +87,7 @@ export const getBookingDetails = async (req, res) => {
   res.json(booking);
 };
 
-// @desc    Cancel a booking
+// @desc    Cancel a booking (Reject)
 // @route   DELETE /api/admin/bookings/:bookingId
 export const cancelBooking = async (req, res) => {
   const { bookingId } = req.params;
@@ -97,5 +98,38 @@ export const cancelBooking = async (req, res) => {
     throw new Error('Booking not found');
   }
 
+  // Send rejection email
+  await sendEmail(
+    booking.email,
+    'Your Booking Request was Cancelled - Surya Photography',
+    `Hi ${booking.name},\n\nWe regret to inform you that your booking request for ${booking.date} at ${booking.slot} has been cancelled.\n\nIf you have any questions, please reply to this email.\n\nBest,\nSurya Photography`
+  );
+
   res.json({ success: true, message: 'Booking cancelled successfully' });
+};
+
+// @desc    Accept a booking
+// @route   PUT /api/admin/bookings/:bookingId/accept
+export const acceptBooking = async (req, res) => {
+  const { bookingId } = req.params;
+
+  const booking = await Booking.findOneAndUpdate(
+    { bookingId },
+    { status: 'confirmed' },
+    { returnDocument: 'after' }
+  );
+
+  if (!booking) {
+    res.status(404);
+    throw new Error('Booking not found');
+  }
+
+  // Send acceptance email
+  await sendEmail(
+    booking.email,
+    'Your Booking is Confirmed! - Surya Photography',
+    `Hi ${booking.name},\n\nGreat news! Your booking for ${booking.date} at ${booking.slot} has been confirmed.\n\nWe look forward to seeing you.\n\nBest,\nSurya Photography`
+  );
+
+  res.json({ success: true, message: 'Booking accepted successfully', booking });
 };

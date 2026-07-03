@@ -36,7 +36,8 @@ export const calculateDateAvailability = async (date) => {
   const bookings = await Booking.find({ date, status: { $ne: 'cancelled' } });
   const blocks = await BlockedSlot.find({ date });
 
-  const bookedSlots = bookings.map(b => b.slot);
+  const bookedSlots = bookings.filter(b => b.status === 'confirmed').map(b => b.slot);
+  const pendingSlots = bookings.filter(b => b.status === 'pending').map(b => b.slot);
   const blockedSlots = blocks.map(b => b.slot);
 
   const slotAvailability = SLOTS.map(slot => {
@@ -46,6 +47,8 @@ export const calculateDateAvailability = async (date) => {
       status = 'BLOCKED';
     } else if (bookedSlots.includes(slot)) {
       status = 'BOOKED';
+    } else if (pendingSlots.includes(slot)) {
+      status = 'PENDING';
     }
 
     return {

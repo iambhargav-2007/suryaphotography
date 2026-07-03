@@ -15,7 +15,10 @@ interface Slot {
   status: SlotStatus;
   bookingId?: string;
   name?: string;
+  email?: string;
   phone?: string;
+  year?: string;
+  branch?: string;
   location?: string;
   notes?: string;
 }
@@ -124,8 +127,12 @@ const AdminCalendar: React.FC = () => {
           status: s.status.toLowerCase(),
           bookingId: s.bookingId,
           name: s.name,
+          email: s.email,
           phone: s.phone,
-          notes: s.reason
+          year: s.year,
+          branch: s.branch,
+          location: s.location,
+          notes: s.notes || s.reason
         };
       });
       
@@ -211,7 +218,26 @@ const AdminCalendar: React.FC = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
-        showToast('Booking Cancelled');
+        showToast('Booking Cancelled / Rejected');
+        fetchSlotsForDate(selectedDate);
+        fetchCalendar();
+        closeBottomSheet();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleAcceptBooking = async () => {
+    if (!selectedSlot || !selectedDate || !selectedSlot.bookingId) return;
+    try {
+      const token = localStorage.getItem('adminToken');
+      const res = await fetch(`${API_BASE_URL}/admin/bookings/${selectedSlot.bookingId}/accept`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        showToast('Booking Accepted');
         fetchSlotsForDate(selectedDate);
         fetchCalendar();
         closeBottomSheet();
@@ -312,8 +338,8 @@ const AdminCalendar: React.FC = () => {
                               <span className="time">{slot.time.split(' - ')[0]}</span>
                             </div>
                             <div className="slot-info-block">
-                              <span className={`slot-name ${slot.status === 'booked' ? 'booked-name' : ''}`}>
-                                {slot.status === 'available' ? 'Available' : slot.status === 'blocked' ? 'Blocked' : slot.name}
+                              <span className={`slot-name ${slot.status === 'booked' || slot.status === 'pending' ? 'booked-name' : ''}`}>
+                                {slot.status === 'available' ? 'Available' : slot.status === 'blocked' ? 'Blocked' : slot.name + (slot.status === 'pending' ? ' (Pending)' : '')}
                               </span>
                             </div>
                           </div>
@@ -383,12 +409,25 @@ const AdminCalendar: React.FC = () => {
               </div>
 
               <div className="sheet-body">
-                {selectedSlot.status === 'booked' && (
+                {(selectedSlot.status === 'booked' || selectedSlot.status === 'pending') && (
                   <div className="booked-details">
                     <div className="detail-row"><span className="label">Name</span><span className="value">{selectedSlot.name}</span></div>
+                    <div className="detail-row"><span className="label">Email</span><span className="value">{selectedSlot.email || 'N/A'}</span></div>
                     <div className="detail-row"><span className="label">Phone</span><a href={`tel:${selectedSlot.phone}`} className="value phone-link">{selectedSlot.phone}</a></div>
+                    <div className="detail-row"><span className="label">Year</span><span className="value">{selectedSlot.year || 'N/A'}</span></div>
+                    <div className="detail-row"><span className="label">Branch</span><span className="value">{selectedSlot.branch || 'N/A'}</span></div>
+                    <div className="detail-row"><span className="label">Location</span><span className="value">{selectedSlot.location || 'N/A'}</span></div>
+                    {selectedSlot.notes && (
+                      <div className="detail-row vertical">
+                        <span className="label">Notes</span>
+                        <div className="notes-box">{selectedSlot.notes}</div>
+                      </div>
+                    )}
                     
                     <div className="sheet-actions mt-4">
+                      <button className="sheet-btn" style={{backgroundColor: 'var(--status-green)', color: '#fff', borderColor: 'var(--status-green)'}} onClick={handleAcceptBooking}>
+                        <CheckCircle2 size={18} /> Accept Booking
+                      </button>
                       <a href={`https://wa.me/${selectedSlot.phone?.replace('+', '')}`} target="_blank" rel="noreferrer" className="sheet-btn btn-whatsapp">
                         <MessageCircle size={18} /> WhatsApp Customer
                       </a>
@@ -396,7 +435,7 @@ const AdminCalendar: React.FC = () => {
                         <Phone size={18} /> Call Customer
                       </a>
                       <button className="sheet-btn btn-cancel-booking" onClick={handleCancelBooking}>
-                        <Trash2 size={18} /> Cancel Booking
+                        <Trash2 size={18} /> Reject / Cancel Booking
                       </button>
                     </div>
                   </div>

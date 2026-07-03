@@ -6,7 +6,8 @@ import {
   blockSlot,
   unblockSlot,
   getBookingDetails,
-  cancelBooking
+  cancelBooking,
+  acceptBooking
 } from '../controllers/adminController.js';
 import { loginAdmin } from '../controllers/authController.js';
 import { protect } from '../middlewares/authMiddleware.js';
@@ -33,5 +34,6 @@ router.delete('/unblock-slot', unblockSlot);
 // Bookings
 router.get('/bookings/:bookingId', getBookingDetails);
 router.delete('/bookings/:bookingId', cancelBooking);
+router.put('/bookings/:bookingId/accept', acceptBooking);
 
 export default router;

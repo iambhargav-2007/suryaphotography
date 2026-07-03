@@ -42,10 +42,15 @@ export const fetchDateSlots = async (date) => {
     if (booking) {
       return {
         slot,
-        status: 'BOOKED',
+        status: booking.status === 'pending' ? 'PENDING' : 'BOOKED',
         bookingId: booking.bookingId,
         name: booking.name,
-        phone: booking.phone
+        email: booking.email,
+        phone: booking.phone,
+        year: booking.year,
+        branch: booking.branch,
+        location: booking.preferredLocation,
+        notes: booking.notes
       };
     } else if (block) {
       return {

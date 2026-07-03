@@ -21,7 +21,7 @@ interface SlotItem {
   id: string;
   time: string;
   title: string;
-  status: 'available' | 'booked' | 'blocked';
+  status: 'available' | 'booked' | 'pending' | 'blocked';
 }
 
 const locations = ['Food Court', 'Sklm Campus', 'Main gate', 'Beside Library', 'Open To Suggestions'];
@@ -31,17 +31,18 @@ const Booking: React.FC = () => {
 
   // Selection State
   const [selectedDateId, setSelectedDateId] = useState<string | null>(null);
-  const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
+  const [selectedSlotIds, setSelectedSlotIds] = useState<string[]>([]);
 
   // Form & UI State
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [bookingId, setBookingId] = useState('');
+  const [bookingIds, setBookingIds] = useState<string[]>([]);
   const [isCopied, setIsCopied] = useState(false);
 
   // Form Data State
   const [formData, setFormData] = useState({
     fullName: '',
+    email: '',
     mobile: '',
     year: '',
     branch: '',
@@ -122,7 +123,7 @@ const Booking: React.FC = () => {
             id: item.slot,
             time: timeLabel,
             title: 'Portrait Session',
-            status: item.status.toLowerCase() as 'available' | 'booked' | 'blocked'
+            status: item.status.toLowerCase() as 'available' | 'booked' | 'pending' | 'blocked'
           };
         });
         
@@ -137,7 +138,7 @@ const Booking: React.FC = () => {
   }, [selectedDateId]);
 
   const selectedDate = datesList.find(d => d.id === selectedDateId);
-  const selectedSlot = slotsList.find(s => s.id === selectedSlotId);
+  const selectedSlots = slotsList.filter(s => selectedSlotIds.includes(s.id));
   const availableSlotsCount = slotsList.filter(s => s.status === 'available').length;
   const totalSlotsCount = slotsList.length;
 
@@ -162,13 +163,14 @@ const Booking: React.FC = () => {
     try {
       const payload = {
         name: formData.fullName,
+        email: formData.email,
         phone: formData.mobile,
         year: formData.year,
         branch: formData.branch,
         preferredLocation: formData.location,
         notes: formData.notes,
         date: selectedDateId,
-        slot: selectedSlotId
+        slots: selectedSlotIds
       };
       
       const res = await fetch(`${API_BASE_URL}/bookings`, {
@@ -183,7 +185,7 @@ const Booking: React.FC = () => {
         throw new Error(data.message || 'Failed to create booking');
       }
       
-      setBookingId(data.bookingId);
+      setBookingIds(data.bookingIds);
       setIsSuccess(true);
     } catch (err: any) {
       setBookingError(err.message);
@@ -201,12 +203,12 @@ const Booking: React.FC = () => {
     setIsSuccess(false);
     setIsFormOpen(false);
     setSelectedDateId(null);
-    setSelectedSlotId(null);
+    setSelectedSlotIds([]);
     document.body.style.overflow = 'auto';
   };
 
   const handleCopyId = () => {
-    navigator.clipboard.writeText(bookingId);
+    navigator.clipboard.writeText(bookingIds.join(', '));
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2000);
   };
@@ -259,7 +261,7 @@ const Booking: React.FC = () => {
                     className={`date-card ${isSelected ? 'selected' : ''} ${date.isFull ? 'full' : ''}`}
                     onClick={() => {
                       setSelectedDateId(date.id);
-                      setSelectedSlotId(null);
+                      setSelectedSlotIds([]);
                     }}
                     whileTap={{ scale: 0.95 }}
                   >
@@ -298,14 +300,18 @@ const Booking: React.FC = () => {
                   <p>Loading slots...</p>
                 ) : (
                   slotsList.map((slot) => {
-                    const isSelected = slot.id === selectedSlotId;
+                    const isSelected = selectedSlotIds.includes(slot.id);
                     return (
                       <motion.button
                         key={slot.id}
                         className={`slot-card ${slot.status} ${isSelected ? 'selected' : ''}`}
                         onClick={() => {
                           if (slot.status === 'available') {
-                            setSelectedSlotId(slot.id);
+                            if (selectedSlotIds.includes(slot.id)) {
+                              setSelectedSlotIds(selectedSlotIds.filter(id => id !== slot.id));
+                            } else {
+                              setSelectedSlotIds([...selectedSlotIds, slot.id]);
+                            }
                           }
                         }}
                         whileTap={slot.status === 'available' ? { scale: 0.95 } : {}}
@@ -317,7 +323,7 @@ const Booking: React.FC = () => {
                           <span className="slot-title">{slot.title}</span>
                         </div>
                         <span className="slot-status">
-                          {slot.status === 'available' ? 'Available' : slot.status === 'booked' ? 'Booked' : 'Blocked'}
+                          {slot.status === 'available' ? 'Available' : slot.status === 'booked' ? 'Booked' : slot.status === 'pending' ? 'Pending' : 'Blocked'}
                         </span>
                       </motion.button>
                     );
@@ -347,7 +353,7 @@ const Booking: React.FC = () => {
 
       {/* Floating Summary & CTA */}
       <AnimatePresence>
-        {selectedSlotId && selectedDate && !isFormOpen && (
+        {selectedSlotIds.length > 0 && selectedDate && !isFormOpen && (
           <motion.div 
             className="floating-summary-container"
             initial={{ y: 100, opacity: 0 }}
@@ -365,26 +371,26 @@ const Booking: React.FC = () => {
                   </div>
                   <div className="info-item">
                     <Clock size={16} />
-                    <span>{selectedSlot?.time}</span>
+                    <span>{selectedSlots.map(s => s.time).join(', ')}</span>
                   </div>
                   <div className="info-item">
                     <MapPin size={16} />
-                    <span>{selectedSlot?.title}</span>
+                    <span>{selectedSlots[0]?.title}</span>
                   </div>
-                  <div className="info-price">₹400</div>
+                  <div className="info-price">₹{selectedSlotIds.length * 400}</div>
                 </div>
               </div>
 
               <div className="summary-details mobile-only">
                  <div className="mobile-summary-text">
                    <span className="mobile-summary-label">Selected:</span>
-                   <span className="mobile-summary-value">{selectedSlot?.time}</span>
+                   <span className="mobile-summary-value">{selectedSlots.map(s => s.time).join(', ')}</span>
                  </div>
               </div>
 
               <button 
                 className="btn-continue"
-                disabled={!selectedDateId || !selectedSlotId}
+                disabled={!selectedDateId || selectedSlotIds.length === 0}
                 onClick={handleContinueBooking}
               >
                 Continue Booking
@@ -436,9 +442,9 @@ const Booking: React.FC = () => {
                       <div className="sticky-summary-content">
                         <span>{selectedDate?.dateLabel} {selectedDate?.fullDateObj.getFullYear()}</span>
                         <span className="divider">•</span>
-                        <span>{selectedSlot?.time}</span>
+                        <span>{selectedSlots.map(s => s.time).join(', ')}</span>
                         <span className="divider">•</span>
-                        <span className="text-orange">₹400</span>
+                        <span className="text-orange">₹{selectedSlotIds.length * 400}</span>
                       </div>
                     </div>
 
@@ -451,6 +457,17 @@ const Booking: React.FC = () => {
                           placeholder="Enter your full name" 
                           value={formData.fullName}
                           onChange={(e) => setFormData({...formData, fullName: e.target.value})}
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label>Email Address *</label>
+                        <input 
+                          type="email" 
+                          required 
+                          placeholder="your.email@example.com" 
+                          value={formData.email}
+                          onChange={(e) => setFormData({...formData, email: e.target.value})}
                         />
                       </div>
 
@@ -563,7 +580,7 @@ const Booking: React.FC = () => {
                     <h2 className="success-title">Session Reserved</h2>
                     <p className="success-subtitle">
                       Your portrait session has been successfully reserved.<br/>
-                      We'll see you on <strong>{selectedDate?.dateLabel}</strong> at <strong>{selectedSlot?.time?.split(' - ')[0]}</strong>.
+                      We'll see you on <strong>{selectedDate?.dateLabel}</strong> at <strong>{selectedSlots.map(s => s.time?.split(' - ')[0]).join(', ')}</strong>.
                     </p>
                     
                     <div className="success-details-card">
@@ -572,9 +589,9 @@ const Booking: React.FC = () => {
                         <strong>Surya Photography</strong>
                       </div>
                       <div className="success-detail-row">
-                        <span>Booking ID</span>
+                        <span>Booking IDs</span>
                         <div className="booking-id-copy" onClick={handleCopyId}>
-                          <strong className="text-orange">{bookingId}</strong>
+                          <strong className="text-orange">{bookingIds.join(', ')}</strong>
                           <span className="copy-btn">{isCopied ? 'Copied!' : 'Copy'}</span>
                         </div>
                       </div>
@@ -584,11 +601,11 @@ const Booking: React.FC = () => {
                       </div>
                       <div className="success-detail-row">
                         <span>Time</span>
-                        <strong>{selectedSlot?.time}</strong>
+                        <strong>{selectedSlots.map(s => s.time).join(', ')}</strong>
                       </div>
                       <div className="success-detail-row">
                         <span>Price</span>
-                        <strong>₹400</strong>
+                        <strong>₹{selectedSlotIds.length * 400}</strong>
                       </div>
                     </div>
 

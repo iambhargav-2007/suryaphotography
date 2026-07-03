@@ -4,6 +4,7 @@ const bookingSchema = new mongoose.Schema(
   {
     bookingId: { type: String, required: true, unique: true },
     name: { type: String, required: true },
+    email: { type: String, required: true },
     phone: { type: String, required: true },
     year: { type: String, required: true },
     branch: { type: String, required: true },

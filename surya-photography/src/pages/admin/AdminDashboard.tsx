@@ -22,33 +22,33 @@ const AdminDashboard: React.FC = () => {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  React.useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        const token = localStorage.getItem('adminToken');
-        if (!token) {
-          navigate('/admin/login');
-          return;
-        }
-        
-        const res = await fetch(`${API_BASE_URL}/admin/dashboard`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        
-        if (!res.ok) {
-          if (res.status === 401) navigate('/admin/login');
-          throw new Error('Failed to fetch dashboard');
-        }
-        
-        const data = await res.json();
-        setDashboardData(data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
+  const fetchDashboard = async () => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      if (!token) {
+        navigate('/admin/login');
+        return;
       }
-    };
-    
+      
+      const res = await fetch(`${API_BASE_URL}/admin/dashboard`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (!res.ok) {
+        if (res.status === 401) navigate('/admin/login');
+        throw new Error('Failed to fetch dashboard');
+      }
+      
+      const data = await res.json();
+      setDashboardData(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
     fetchDashboard();
   }, [navigate]);
 
@@ -61,9 +61,48 @@ const AdminDashboard: React.FC = () => {
     setSelectedSlot(null);
   };
 
+  const handleAcceptBooking = async (bookingId: string) => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      const res = await fetch(`${API_BASE_URL}/admin/bookings/${bookingId}/accept`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        showToast('Booking Accepted');
+        closeBottomSheet();
+        fetchDashboard();
+      } else {
+        showToast('Error accepting booking');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleCancelBooking = async (bookingId: string) => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      const res = await fetch(`${API_BASE_URL}/admin/bookings/${bookingId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        showToast('Booking Cancelled/Rejected');
+        closeBottomSheet();
+        fetchDashboard();
+      } else {
+        showToast('Error cancelling booking');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch(status) {
       case 'booked': return 'status-green';
+      case 'pending': return 'status-orange';
       case 'available': return 'status-gray';
       case 'blocked': return 'status-red';
       default: return 'status-gray';
@@ -153,14 +192,14 @@ const AdminDashboard: React.FC = () => {
                 <div 
                   key={slot.id} 
                   className="schedule-item" 
-                  onClick={() => slot.status === 'booked' ? setSelectedSlot(slot) : null}
-                  style={{ cursor: slot.status === 'booked' ? 'pointer' : 'default' }}
+                  onClick={() => ['booked', 'pending'].includes(slot.status) ? setSelectedSlot(slot) : null}
+                  style={{ cursor: ['booked', 'pending'].includes(slot.status) ? 'pointer' : 'default' }}
                 >
                   <div className="schedule-time">{slot.time}</div>
                   <div className="schedule-details">
                     <div className={`status-dot ${getStatusColor(slot.status)}`} />
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span className="schedule-name">{slot.name}</span>
+                      <span className="schedule-name">{slot.name} {slot.status === 'pending' && '(Pending)'}</span>
                       {slot.phone && (
                         <a 
                           href={`tel:${slot.phone}`} 
@@ -286,8 +325,8 @@ const AdminDashboard: React.FC = () => {
                 <div className="sheet-title-group">
                   <p style={{ fontSize: '0.85rem', color: 'var(--admin-text-secondary)', marginBottom: '4px', fontFamily: 'var(--font-body)' }}>Today</p>
                   <h3>{selectedSlot.time}</h3>
-                  <span className="sheet-badge badge-booked">
-                    BOOKED
+                  <span className={`sheet-badge badge-${selectedSlot.status === 'booked' ? 'booked' : 'pending'}`}>
+                    {selectedSlot.status.toUpperCase()}
                   </span>
                 </div>
                 <button className="modal-close" onClick={closeBottomSheet}>
@@ -298,7 +337,10 @@ const AdminDashboard: React.FC = () => {
               <div className="sheet-body">
                 <div className="booked-details">
                   <div className="detail-row"><span className="label">Name</span><span className="value">{selectedSlot.name}</span></div>
+                  <div className="detail-row"><span className="label">Email</span><span className="value">{selectedSlot.email || 'N/A'}</span></div>
                   <div className="detail-row"><span className="label">Phone</span><a href={`tel:${selectedSlot.phone}`} className="value phone-link">{selectedSlot.phone}</a></div>
+                  <div className="detail-row"><span className="label">Year</span><span className="value">{selectedSlot.year || 'N/A'}</span></div>
+                  <div className="detail-row"><span className="label">Branch</span><span className="value">{selectedSlot.branch || 'N/A'}</span></div>
                   <div className="detail-row"><span className="label">Location</span><span className="value">{selectedSlot.location || 'N/A'}</span></div>
                   {selectedSlot.notes && (
                     <div className="detail-row vertical">
@@ -308,17 +350,17 @@ const AdminDashboard: React.FC = () => {
                   )}
 
                   <div className="sheet-actions mt-4">
+                    <button className="sheet-btn" style={{backgroundColor: 'var(--status-green)', color: '#fff', borderColor: 'var(--status-green)'}} onClick={() => handleAcceptBooking(selectedSlot.id)}>
+                      <CheckCircle2 size={18} /> Accept Booking
+                    </button>
                     <a href={`https://wa.me/${selectedSlot.phone?.replace('+', '')}`} target="_blank" rel="noreferrer" className="sheet-btn btn-whatsapp">
                       <MessageCircle size={18} /> WhatsApp Customer
                     </a>
                     <a href={`tel:${selectedSlot.phone}`} className="sheet-btn btn-call">
                       <Phone size={18} /> Call Customer
                     </a>
-                    <button className="sheet-btn btn-cancel-booking" onClick={() => {
-                      showToast('Booking Cancelled');
-                      closeBottomSheet();
-                    }}>
-                      <Trash2 size={18} /> Cancel Booking
+                    <button className="sheet-btn btn-cancel-booking" onClick={() => handleCancelBooking(selectedSlot.id)}>
+                      <Trash2 size={18} /> Reject / Cancel Booking
                     </button>
                   </div>
                 </div>
