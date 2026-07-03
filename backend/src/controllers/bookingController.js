@@ -64,7 +64,7 @@ export const createBooking = async (req, res) => {
   }
 
   // 3. Auto-generate Unique Booking IDs and Create Bookings
-  const lastBooking = await Booking.findOne().sort({ createdAt: -1 });
+  const lastBooking = await Booking.findOne().sort({ _id: -1 });
   let nextIdNumber = 1001;
   
   if (lastBooking && lastBooking.bookingId && lastBooking.bookingId.startsWith('SP-')) {
