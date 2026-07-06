@@ -12,7 +12,6 @@ const corsOptions = {
   optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // Handle preflight for all routes
 app.use(express.json());
 
 import bookingRoutes from './routes/bookingRoutes.js';
