@@ -41,8 +41,10 @@ export const fetchDateSlots = async (date) => {
 
     if (booking) {
       return {
+        id: slot,
         slot,
-        status: booking.status === 'pending' ? 'PENDING' : 'BOOKED',
+        time: slot === '6PM' ? '6 PM - 7 PM' : slot === '7PM' ? '7 PM - 8 PM' : slot === '8PM' ? '8 PM - 9 PM' : '9 PM - 10 PM',
+        status: booking.status === 'pending' ? 'pending' : 'booked',
         bookingId: booking.bookingId,
         name: booking.name,
         email: booking.email,
@@ -54,14 +56,18 @@ export const fetchDateSlots = async (date) => {
       };
     } else if (block) {
       return {
+        id: slot,
         slot,
-        status: 'BLOCKED',
+        time: slot === '6PM' ? '6 PM - 7 PM' : slot === '7PM' ? '7 PM - 8 PM' : slot === '8PM' ? '8 PM - 9 PM' : '9 PM - 10 PM',
+        status: 'blocked',
         reason: block.reason || ''
       };
     } else {
       return {
+        id: slot,
         slot,
-        status: 'AVAILABLE'
+        time: slot === '6PM' ? '6 PM - 7 PM' : slot === '7PM' ? '7 PM - 8 PM' : slot === '8PM' ? '8 PM - 9 PM' : '9 PM - 10 PM',
+        status: 'available'
       };
     }
   });
