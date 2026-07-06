@@ -393,82 +393,85 @@ const AdminCalendar: React.FC = () => {
             >
               <div className="modal-drag-handle" />
               
+              {/* Fixed Header */}
               <div className="sheet-header">
                 <div className="sheet-title-group">
-                  <p style={{ fontSize: '0.85rem', color: 'var(--admin-text-secondary)', marginBottom: '4px', fontFamily: 'var(--font-body)' }}>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--admin-text-secondary)', marginBottom: '4px', fontFamily: 'var(--font-body)', textTransform: 'uppercase', letterSpacing: '1px' }}>
                     {datesList.find(d => d.id === selectedDate)?.dateStr}
                   </p>
                   <h3>{selectedSlot.time}</h3>
                   <span className={`sheet-badge badge-${selectedSlot.status}`}>
-                    STATUS: {selectedSlot.status.toUpperCase()}
+                    {selectedSlot.status.toUpperCase()}
                   </span>
                 </div>
                 <button className="modal-close" onClick={closeBottomSheet}>
-                  <X size={24} />
+                  <X size={20} />
                 </button>
               </div>
 
-              <div className="sheet-body">
-                {(selectedSlot.status === 'booked' || selectedSlot.status === 'pending') && (
-                  <div className="booked-details">
-                    <div className="detail-row"><span className="label">Name</span><span className="value">{selectedSlot.name}</span></div>
-                    <div className="detail-row"><span className="label">Email</span><span className="value">{selectedSlot.email || 'N/A'}</span></div>
-                    <div className="detail-row"><span className="label">Phone</span><a href={`tel:${selectedSlot.phone}`} className="value phone-link">{selectedSlot.phone}</a></div>
-                    <div className="detail-row"><span className="label">Year</span><span className="value">{selectedSlot.year || 'N/A'}</span></div>
-                    <div className="detail-row"><span className="label">Branch</span><span className="value">{selectedSlot.branch || 'N/A'}</span></div>
-                    <div className="detail-row"><span className="label">Location</span><span className="value">{selectedSlot.location || 'N/A'}</span></div>
-                    {selectedSlot.notes && (
-                      <div className="detail-row vertical">
-                        <span className="label">Notes</span>
-                        <div className="notes-box">{selectedSlot.notes}</div>
+              {/* Scrollable Body */}
+              <div className="sheet-scroll-content">
+                <div className="sheet-body">
+                  {(selectedSlot.status === 'booked' || selectedSlot.status === 'pending') && (
+                    <>
+                      <div className="booked-details">
+                        <div className="detail-row"><span className="label">Name</span><span className="value">{selectedSlot.name}</span></div>
+                        <div className="detail-row"><span className="label">Email</span><span className="value">{selectedSlot.email || 'N/A'}</span></div>
+                        <div className="detail-row"><span className="label">Phone</span><a href={`tel:${selectedSlot.phone}`} className="value phone-link">{selectedSlot.phone}</a></div>
+                        <div className="detail-row"><span className="label">Year</span><span className="value">{selectedSlot.year || 'N/A'}</span></div>
+                        <div className="detail-row"><span className="label">Branch</span><span className="value">{selectedSlot.branch || 'N/A'}</span></div>
+                        <div className="detail-row"><span className="label">Location</span><span className="value">{selectedSlot.location || 'N/A'}</span></div>
+                        {selectedSlot.notes && (
+                          <div className="detail-row vertical">
+                            <span className="label">Notes</span>
+                            <div className="notes-box">{selectedSlot.notes}</div>
+                          </div>
+                        )}
                       </div>
-                    )}
-                    
-                    <div className="sheet-actions mt-4">
-                    {selectedSlot.status === 'pending' && (
-                      <button className="sheet-btn" style={{backgroundColor: 'var(--status-green)', color: '#fff', borderColor: 'var(--status-green)'}} onClick={handleAcceptBooking}>
-                        <CheckCircle2 size={18} /> Accept Booking
-                      </button>
-                    )}
-                      <a href={`https://wa.me/${selectedSlot.phone?.replace('+', '')}`} target="_blank" rel="noreferrer" className="sheet-btn btn-whatsapp">
-                        <MessageCircle size={18} /> WhatsApp Customer
-                      </a>
-                      <a href={`tel:${selectedSlot.phone}`} className="sheet-btn btn-call">
-                        <Phone size={18} /> Call Customer
-                      </a>
-                      <button className="sheet-btn btn-cancel-booking" onClick={handleCancelBooking}>
-                        <Trash2 size={18} /> Reject / Cancel Booking
-                      </button>
-                    </div>
-                  </div>
-                )}
+                      
+                      <div className="sheet-actions">
+                        {selectedSlot.status === 'pending' && (
+                          <button className="sheet-btn btn-accept-booking" onClick={handleAcceptBooking}>
+                            <CheckCircle2 size={18} /> Accept Booking
+                          </button>
+                        )}
+                        <a href={`https://wa.me/${selectedSlot.phone?.replace('+', '')}`} target="_blank" rel="noreferrer" className="sheet-btn btn-whatsapp">
+                          <MessageCircle size={18} /> WhatsApp Customer
+                        </a>
+                        <a href={`tel:${selectedSlot.phone}`} className="sheet-btn btn-call">
+                          <Phone size={18} /> Call Customer
+                        </a>
+                        <button className="sheet-btn btn-cancel-booking" onClick={handleCancelBooking}>
+                          <Trash2 size={18} /> Reject / Cancel Booking
+                        </button>
+                      </div>
+                    </>
+                  )}
 
-                {selectedSlot.status === 'available' && (
-                  <div className="available-actions">
-                    <p className="helper-text">This slot is open for booking.</p>
-                    <div className="sheet-actions">
+                  {selectedSlot.status === 'available' && (
+                    <div className="sheet-actions" style={{paddingTop: '1rem'}}>
+                      <p className="helper-text">This slot is open for booking.</p>
                       <button className="sheet-btn btn-block" onClick={handleBlockSlot}>
                         <Ban size={18} /> Block Slot
                       </button>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {selectedSlot.status === 'blocked' && (
-                  <div className="blocked-actions">
-                    <p className="helper-text">This slot is manually blocked and not visible to users.</p>
-                    <div className="sheet-actions">
+                  {selectedSlot.status === 'blocked' && (
+                    <div className="sheet-actions" style={{paddingTop: '1rem'}}>
+                      <p className="helper-text">This slot is manually blocked.</p>
                       <button className="sheet-btn btn-unblock" onClick={handleUnblockSlot}>
                         <Unlock size={18} /> Unblock Slot
                       </button>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </motion.div>
           </>
         )}
       </AnimatePresence>
+
 
     </div>
   );

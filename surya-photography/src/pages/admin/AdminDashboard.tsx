@@ -320,38 +320,42 @@ const AdminDashboard: React.FC = () => {
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
             >
               <div className="modal-drag-handle" />
-              
+
+              {/* Fixed Header */}
               <div className="sheet-header">
                 <div className="sheet-title-group">
-                  <p style={{ fontSize: '0.85rem', color: 'var(--admin-text-secondary)', marginBottom: '4px', fontFamily: 'var(--font-body)' }}>Today</p>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--admin-text-secondary)', marginBottom: '4px', fontFamily: 'var(--font-body)', textTransform: 'uppercase', letterSpacing: '1px' }}>Today</p>
                   <h3>{selectedSlot.time}</h3>
                   <span className={`sheet-badge badge-${selectedSlot.status === 'booked' ? 'booked' : 'pending'}`}>
                     {selectedSlot.status.toUpperCase()}
                   </span>
                 </div>
                 <button className="modal-close" onClick={closeBottomSheet}>
-                  <X size={24} />
+                  <X size={20} />
                 </button>
               </div>
 
-              <div className="sheet-body">
-                <div className="booked-details">
-                  <div className="detail-row"><span className="label">Name</span><span className="value">{selectedSlot.name}</span></div>
-                  <div className="detail-row"><span className="label">Email</span><span className="value">{selectedSlot.email || 'N/A'}</span></div>
-                  <div className="detail-row"><span className="label">Phone</span><a href={`tel:${selectedSlot.phone}`} className="value phone-link">{selectedSlot.phone}</a></div>
-                  <div className="detail-row"><span className="label">Year</span><span className="value">{selectedSlot.year || 'N/A'}</span></div>
-                  <div className="detail-row"><span className="label">Branch</span><span className="value">{selectedSlot.branch || 'N/A'}</span></div>
-                  <div className="detail-row"><span className="label">Location</span><span className="value">{selectedSlot.location || 'N/A'}</span></div>
-                  {selectedSlot.notes && (
-                    <div className="detail-row vertical">
-                      <span className="label">Notes</span>
-                      <div className="notes-box">{selectedSlot.notes}</div>
-                    </div>
-                  )}
+              {/* Scrollable body */}
+              <div className="sheet-scroll-content">
+                <div className="sheet-body">
+                  <div className="booked-details">
+                    <div className="detail-row"><span className="label">Name</span><span className="value">{selectedSlot.name}</span></div>
+                    <div className="detail-row"><span className="label">Email</span><span className="value">{selectedSlot.email || 'N/A'}</span></div>
+                    <div className="detail-row"><span className="label">Phone</span><a href={`tel:${selectedSlot.phone}`} className="value phone-link">{selectedSlot.phone}</a></div>
+                    <div className="detail-row"><span className="label">Year</span><span className="value">{selectedSlot.year || 'N/A'}</span></div>
+                    <div className="detail-row"><span className="label">Branch</span><span className="value">{selectedSlot.branch || 'N/A'}</span></div>
+                    <div className="detail-row"><span className="label">Location</span><span className="value">{selectedSlot.location || 'N/A'}</span></div>
+                    {selectedSlot.notes && (
+                      <div className="detail-row vertical">
+                        <span className="label">Notes</span>
+                        <div className="notes-box">{selectedSlot.notes}</div>
+                      </div>
+                    )}
+                  </div>
 
-                  <div className="sheet-actions mt-4">
+                  <div className="sheet-actions">
                     {selectedSlot.status === 'pending' && (
-                      <button className="sheet-btn" style={{backgroundColor: 'var(--status-green)', color: '#fff', borderColor: 'var(--status-green)'}} onClick={() => handleAcceptBooking(selectedSlot.id)}>
+                      <button className="sheet-btn btn-accept-booking" onClick={() => handleAcceptBooking(selectedSlot.id)}>
                         <CheckCircle2 size={18} /> Accept Booking
                       </button>
                     )}

@@ -4,8 +4,15 @@ import { notFound, errorHandler } from './middlewares/errorMiddleware.js';
 
 const app = express();
 
-// Global Middlewares
-app.use(cors());
+// Global Middlewares - explicit CORS to support PUT/DELETE from Vercel
+const corsOptions = {
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Handle preflight for all routes
 app.use(express.json());
 
 import bookingRoutes from './routes/bookingRoutes.js';
