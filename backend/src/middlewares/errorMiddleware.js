@@ -5,13 +5,13 @@ const notFound = (req, res, next) => {
 };
 
 const errorHandler = (err, req, res, next) => {
-  let statusCode = res.statusCode === 200 ? 500 : res.statusCode;
-  let message = err.message;
+  // In Express 5, res.statusCode may be reset. Use err.status or err.statusCode if set.
+  const statusCode = err.status || err.statusCode || (res.statusCode !== 200 ? res.statusCode : 500);
+  const message = err.message;
 
   // Handle Mongoose bad ObjectId
   if (err.name === 'CastError' && err.kind === 'ObjectId') {
-    statusCode = 404;
-    message = 'Resource not found';
+    return res.status(404).json({ message: 'Resource not found' });
   }
 
   res.status(statusCode).json({
