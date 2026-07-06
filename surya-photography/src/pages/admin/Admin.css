@@ -637,9 +637,9 @@
 
 @media (min-width: 768px) {
   .admin-bottom-sheet {
-    width: 450px;
+    width: 550px;
     left: 50%;
-    margin-left: -225px;
+    margin-left: -275px;
     bottom: 2rem;
     border-radius: 24px;
     border: 1px solid var(--admin-border);
@@ -682,9 +682,10 @@
 .detail-row {
   display: flex;
   justify-content: space-between;
-  padding: 0.75rem 0;
+  padding: 0.6rem 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   font-family: var(--font-body);
+  gap: 1rem;
 }
 
 .detail-row.vertical {
@@ -702,6 +703,8 @@
   color: var(--admin-text-primary);
   font-weight: 500;
   font-size: 0.95rem;
+  text-align: right;
+  word-break: break-word;
 }
 
 .phone-link {

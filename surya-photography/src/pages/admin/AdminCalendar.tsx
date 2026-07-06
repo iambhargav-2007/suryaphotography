@@ -425,9 +425,11 @@ const AdminCalendar: React.FC = () => {
                     )}
                     
                     <div className="sheet-actions mt-4">
+                    {selectedSlot.status === 'pending' && (
                       <button className="sheet-btn" style={{backgroundColor: 'var(--status-green)', color: '#fff', borderColor: 'var(--status-green)'}} onClick={handleAcceptBooking}>
                         <CheckCircle2 size={18} /> Accept Booking
                       </button>
+                    )}
                       <a href={`https://wa.me/${selectedSlot.phone?.replace('+', '')}`} target="_blank" rel="noreferrer" className="sheet-btn btn-whatsapp">
                         <MessageCircle size={18} /> WhatsApp Customer
                       </a>
