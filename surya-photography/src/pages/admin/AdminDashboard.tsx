@@ -61,41 +61,55 @@ const AdminDashboard: React.FC = () => {
     setSelectedSlot(null);
   };
 
+  const [actionLoading, setActionLoading] = useState(false);
+
   const handleAcceptBooking = async (bookingId: string) => {
+    if (actionLoading) return;
+    setActionLoading(true);
     try {
       const token = localStorage.getItem('adminToken');
       const res = await fetch(`${API_BASE_URL}/admin/bookings/${bookingId}/accept`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}` }
       });
+      const data = await res.json();
       if (res.ok) {
-        showToast('Booking Accepted');
+        showToast('Booking Accepted! Confirmation email sent.');
         closeBottomSheet();
         fetchDashboard();
       } else {
-        showToast('Error accepting booking');
+        showToast(data.message || 'Error accepting booking');
       }
     } catch (err) {
       console.error(err);
+      showToast('Network error');
+    } finally {
+      setActionLoading(false);
     }
   };
 
   const handleCancelBooking = async (bookingId: string) => {
+    if (actionLoading) return;
+    setActionLoading(true);
     try {
       const token = localStorage.getItem('adminToken');
       const res = await fetch(`${API_BASE_URL}/admin/bookings/${bookingId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
+      const data = await res.json();
       if (res.ok) {
-        showToast('Booking Cancelled/Rejected');
+        showToast('Booking Rejected! User notified via email.');
         closeBottomSheet();
         fetchDashboard();
       } else {
-        showToast('Error cancelling booking');
+        showToast(data.message || 'Error cancelling booking');
       }
     } catch (err) {
       console.error(err);
+      showToast('Network error');
+    } finally {
+      setActionLoading(false);
     }
   };
 
